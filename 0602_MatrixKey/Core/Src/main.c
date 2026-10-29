@@ -24,42 +24,46 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+//行扫描：PE4 PE5 PE6 行；PE0 PE1 PE2 PE3 列，上拉输入
 uint8_t Key_Scan(void)
 {
-    uint8_t keyval = 0xFF;
-    //行0 PE4拉低
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
-    if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_0)==0) {keyval = 0;}
-    if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_1)==0) {keyval = 1;}
-    if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_2)==0) {keyval = 2;}
-    if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_3)==0) {keyval = 3;}
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
+	uint8_t keyval = 0xFF;
+	//第0行 PE4拉低
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
+	HAL_Delay(5);
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_0)==0) {keyval = 1;}
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_1)==0) {keyval = 2;}
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_2)==0) {keyval = 3;}
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_3)==0) {keyval = 4;}
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
+	if(keyval != 0xFF) return keyval;
 
-    //行1 PE5拉低
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_RESET);
-    if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_0)==0) {keyval = 4;}
-    if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_1)==0) {keyval = 5;}
-    if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_2)==0) {keyval = 6;}
-    if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_3)==0) {keyval = 7;}
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_SET);
+	//第1行 PE5拉低
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_RESET);
+	HAL_Delay(5);
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_0)==0) {keyval = 5;}
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_1)==0) {keyval = 6;}
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_2)==0) {keyval = 7;}
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_3)==0) {keyval = 8;}
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_SET);
+	if(keyval != 0xFF) return keyval;
 
-    //行2 PE6拉低
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_6, GPIO_PIN_RESET);
-    if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_0)==0) {keyval = 8;}
-    if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_1)==0) {keyval = 9;}
-    if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_2)==0) {keyval = 10;}
-    if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_3)==0) {keyval = 11;}
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_6, GPIO_PIN_SET);
-
-    HAL_Delay(20);
-    return keyval;
+	//第2行 PE6拉低
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_6, GPIO_PIN_RESET);
+	HAL_Delay(5);
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_0)==0) {keyval = 9;}
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_1)==0) {keyval = 10;}
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_2)==0) {keyval = 11;}
+	if(HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_3)==0) {keyval = 12;}
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_6, GPIO_PIN_SET);
+	return keyval;
 }
-uint8_t key;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -76,7 +80,8 @@ static void MX_GPIO_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	uint8_t keyval;
+	uint8_t bcd_high,bcd_low;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -105,16 +110,35 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    key = Key_Scan();
-    if(key != 0xFF)
+    keyval = Key_Scan();
+    if(keyval != 0xFF)
     {
-        uint8_t bcd;
-        if(key < 10)
-            bcd = key;
-        else
-            bcd = key - 10;
-        GPIOF->ODR = ~bcd;
+      bcd_low = keyval % 10;
+      bcd_high = keyval / 10;
+      //取反！！共阳极：bit为1 →输出低电平 点亮LED
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, (bcd_low & (1<<0)) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, (bcd_low & (1<<1)) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_2, (bcd_low & (1<<2)) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_3, (bcd_low & (1<<3)) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_4, (bcd_high & (1<<0)) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_5, (bcd_high & (1<<1)) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_6, (bcd_high & (1<<2)) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_7, (bcd_high & (1<<3)) ? GPIO_PIN_RESET : GPIO_PIN_SET);
     }
+    else
+    {
+      //无按键，全部熄灭（PF输出高）
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_2, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_3, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_4, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_5, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_6, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOF, GPIO_PIN_7, GPIO_PIN_SET);
+    }
+    HAL_Delay(20);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -175,11 +199,13 @@ void SystemClock_Config(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
+/* USER CODE BEGIN MX_GPIO_Init_1 */
+/* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6, GPIO_PIN_SET);
@@ -200,18 +226,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PF0 PF1 PF2 PF3 PF4 PF5 PF6 PF7 */
+  /*Configure GPIO pins : PF0 PF1 PF2 PF3
+                           PF4 PF5 PF6 PF7 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
                           |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
+/* USER CODE BEGIN MX_GPIO_Init_2 */
+/* USER CODE END MX_GPIO_Init_2 */
 }
-
-/* USER CODE BEGIN 4 */
-
-/* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.
